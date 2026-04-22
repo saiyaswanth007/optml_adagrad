@@ -11,7 +11,7 @@ def add_settings_subtitle(ax, settings_str):
 
 def plot_comparisons(history1, name1, history2, name2, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
-    settings = "matrix=diagonal | update=cmd | domain=unconstrained | reg=none | η=0.01 | ε=1e-8 | epochs=10"
+    settings = "matrix=diagonal | update=cmd | domain=unconstrained | reg=none | η=0.01 | ε=1e-8 | epochs=20"
     
     # 1. Gradient norm vs iterations
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -85,7 +85,7 @@ def plot_part1(histories, output_dir="plots"):
 
 def plot_part2(h_custom, h_pytorch, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
-    settings = "matrix=diagonal | update=cmd | domain=unconstrained | reg=l1 | η=0.01 | ε=1e-8 | λ=0.005 | epochs=10"
+    settings = "matrix=diagonal | update=cmd | domain=unconstrained | reg=l1 | η=0.01 | ε=1e-8 | λ=0.005 | epochs=20"
     
     fig, ax = plt.subplots(figsize=(8, 5))
     e_custom = list(range(1, 1 + len(h_custom['epoch_exact_zeros'])))
@@ -119,7 +119,7 @@ def plot_part2(h_custom, h_pytorch, output_dir="plots"):
 
 def plot_part3(h_cmd, h_pd, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
-    settings = "matrix=diagonal | domain=unconstrained | reg=l2 | η=0.05 | ε=1e-8 | λ=0.05 | epochs=10"
+    settings = "matrix=diagonal | domain=unconstrained | reg=l2 | η=0.05 | ε=1e-8 | λ=0.05 | epochs=20"
     
     for metric, xlabel in [('epoch_train_loss', 'Epochs'), ('epoch_test_loss', 'Epochs'), ('iter_train_loss', 'Iterations')]:
         fig, ax = plt.subplots(figsize=(8, 5))
@@ -168,7 +168,7 @@ def plot_part3(h_cmd, h_pd, output_dir="plots"):
 
 def plot_part4(h_unconstrained, h_constrained, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
-    settings = "matrix=diagonal | update=cmd | reg=none | η=0.1 | ε=1e-8 | epochs=10"
+    settings = "matrix=diagonal | update=cmd | reg=none | η=0.1 | ε=1e-8 | epochs=20"
     
     fig, ax = plt.subplots(figsize=(8, 5))
     e = list(range(1, 1 + len(h_unconstrained['epoch_l1_norm'])))
@@ -190,7 +190,7 @@ def plot_part4(h_unconstrained, h_constrained, output_dir="plots"):
 
 def plot_part5(histories, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
-    settings = "matrix=diagonal | update=cmd | domain=unconstrained | η=0.01 | ε=1e-8 | λ=0.005 | epochs=10"
+    settings = "matrix=diagonal | update=cmd | domain=unconstrained | η=0.01 | ε=1e-8 | λ=0.005 | epochs=20"
     
     styles = {'No Reg': ('tab:blue', '-', 'o'), 'L1 Reg': ('tab:orange', '--', 's'), 'L2 Reg': ('tab:green', '-.', 'd')}
     
