@@ -3,29 +3,67 @@ import os
 import collections
 
 def set_style():
-    # Helper to clean plots
     plt.grid(True, alpha=0.3)
+
+def plot_comparisons(history1, name1, history2, name2, output_dir="plots"):
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 1. Gradient norm vs iterations
+    plt.figure(figsize=(10, 6))
+    plt.plot(history1['iter_grad_norm'], label=name1, alpha=0.9, linewidth=3)
+    plt.plot(history2['iter_grad_norm'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
+    plt.xlabel('Iterations')
+    plt.ylabel('Gradient Norm ||g_t||')
+    plt.title('Baseline: Gradient Norm vs Iterations')
+    plt.yscale('log')
+    plt.legend()
+    set_style()
+    plt.savefig(os.path.join(output_dir, 'baseline_train_grad_norm_vs_iter.png'))
+    plt.close()
+
+    # 2. Update magnitude vs iterations
+    plt.figure(figsize=(10, 6))
+    plt.plot(history1['iter_update_magnitude'], label=name1, alpha=0.9, linewidth=3)
+    plt.plot(history2['iter_update_magnitude'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
+    plt.xlabel('Iterations')
+    plt.ylabel('Update Magnitude ||\Delta \\theta_t||')
+    plt.yscale('log')
+    plt.title('Baseline: Update Magnitude vs Iterations')
+    plt.legend()
+    set_style()
+    plt.savefig(os.path.join(output_dir, 'baseline_train_update_mag_vs_iter.png'))
+    plt.close()
+
+def plot_effective_lr(top_frequent_lrs, top_rare_lrs, output_path="plots/effective_lr.png"):
+    plt.figure(figsize=(8, 6))
+    plt.bar(['Top 100 Frequent Features', 'Top 100 Rare Features'], 
+            [top_frequent_lrs, top_rare_lrs], 
+            color=['blue', 'orange'])
+    plt.ylabel('Average Final Effective LR (\eta / sqrt(G_t))')
+    plt.title('Adagrad Effective LR Sparsity Check: Frequent vs Rare')
+    set_style()
+    plt.savefig(output_path)
+    plt.close()
 
 def plot_part1(histories, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
     
-    # Needs 4 plots per instructions
     fig_names = [
-        ('epoch_train_loss', 'Training Loss vs Epochs'),
-        ('epoch_test_loss', 'Test Loss vs Epochs'),
-        ('epoch_train_accuracy', 'Training Accuracy vs Epochs'),
-        ('epoch_test_accuracy', 'Test Accuracy vs Epochs')
+        ('epoch_train_loss', 'Training Loss vs Epochs', 'Epochs'),
+        ('epoch_test_loss', 'Test Loss vs Epochs', 'Epochs'),
+        ('epoch_train_accuracy', 'Training Accuracy vs Epochs', 'Epochs'),
+        ('epoch_test_accuracy', 'Test Accuracy vs Epochs', 'Epochs'),
+        ('iter_train_loss', 'Training Loss vs Iterations', 'Iterations')
     ]
     
-    for metric, title in fig_names:
+    for metric, title, xlabel in fig_names:
         plt.figure(figsize=(10, 6))
         for (lr, delta, init_acc), hist in histories.items():
-            epochs = list(range(1, 1 + len(hist[metric])))
-            plt.plot(epochs, hist[metric], label=f"({lr},{delta},{init_acc})", alpha=0.7)
-        plt.xlabel('Epochs')
+            x_axis = list(range(1, 1 + len(hist[metric])))
+            plt.plot(x_axis, hist[metric], label=f"({lr},{delta},{init_acc})", alpha=0.7)
+        plt.xlabel(xlabel)
         plt.ylabel(title.split(' ')[0])
         plt.title(title)
-        # Put legend outside
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
         plt.tight_layout()
         plt.savefig(os.path.join(output_dir, f'part1_{metric}.png'))
@@ -51,12 +89,12 @@ def plot_part2(h_custom, h_pytorch, output_dir="plots"):
 def plot_part3(h_cmd, h_pd, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
     
-    for metric in ['epoch_train_loss', 'epoch_test_loss']:
+    for metric, xlabel in [('epoch_train_loss', 'Epochs'), ('epoch_test_loss', 'Epochs'), ('iter_train_loss', 'Iterations')]:
         plt.figure(figsize=(8, 5))
         e = list(range(1, 1 + len(h_cmd[metric])))
-        plt.plot(e, h_cmd[metric], marker='s', label="Update: CMD")
-        plt.plot(e, h_pd[metric], marker='d', label="Update: Primal Dual")
-        plt.xlabel('Epochs')
+        plt.plot(e, h_cmd[metric], marker='s' if 'epoch' in metric else None, label="Update: CMD", alpha=0.7)
+        plt.plot(e, h_pd[metric], marker='d' if 'epoch' in metric else None, label="Update: Primal Dual", linestyle='--', alpha=0.7)
+        plt.xlabel(xlabel)
         plt.ylabel('Loss')
         plt.title(f'Part 3: {metric.replace("_", " ").title()}')
         plt.legend()
