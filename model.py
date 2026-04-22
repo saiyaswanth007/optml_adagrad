@@ -8,10 +8,8 @@ class LogisticRegression(nn.Module):
         set_seeds(seed)
         self.linear = nn.Linear(input_dim, num_classes)
         
-        # Zero initialization is standard for convex optimization
-        # and guarantees perfect reproducibility regardless of hardware specifics
-        nn.init.zeros_(self.linear.weight)
-        nn.init.zeros_(self.linear.bias)
+        # The seed is fixed above, ensuring that PyTorch's default initialization
+        # (Kaiming uniform) will produce identical starting weights across models.
 
     def forward(self, x):
         return self.linear(x)
