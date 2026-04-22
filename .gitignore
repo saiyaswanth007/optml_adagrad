@@ -1,0 +1,61 @@
+=========================
+Python
+=========================
+
+pycache/
+*.py[cod]
+*$py.class
+
+=========================
+Virtual environments
+=========================
+
+venv/
+.venv/
+env/
+ENV/
+
+=========================
+Dataset / downloads
+=========================
+
+data/
+datasets/
+scikit_learn_data/
+*.tar.gz
+*.zip
+.part_
+
+=========================
+Outputs / artifacts
+=========================
+*.log
+*.out
+instructions.md
+=========================
+Model checkpoints
+=========================
+
+*.pt
+*.pth
+checkpoints/
+
+=========================
+Jupyter
+=========================
+
+.ipynb_checkpoints/
+
+=========================
+IDE / editor
+=========================
+
+.vscode/
+.idea/
+
+=========================
+OS junk
+=========================
+
+.DS_Store
+Thumbs.db
