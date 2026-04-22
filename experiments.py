@@ -67,32 +67,30 @@ def run_baseline_sparsity_check(model, optimizer, vectorizer, device):
 
 def run_part1(device, train_loader, test_loader):
     print_part_header("Part 1: Hyperparameter Ablation Study")
-    lrs = [0.1, 0.01, 0.001]
-    deltas = [1e-6, 1e-8, 1e-10]
-    accs = [0, 0.1, 1.0] 
+    lrs = [0.1, 0.05, 0.01, 0.001]
+    accs = [0, 1.0]
     
     histories = {}
     
-    print(f"{'LR':<5} | {'Delta':<6} | {'Acc':<4} | {'Speed':<8} | {'Variance':<8} | {'Final Loss'}")
-    print("-" * 60)
+    print(f"{'LR':<5} | {'Acc':<4} | {'Speed':<8} | {'Variance':<8} | {'Final Loss'}")
+    print("-" * 50)
     for lr in lrs:
-        for delta in deltas:
-            for acc in accs:
-                set_seeds(42)
-                model = LogisticRegression(input_dim=20000, num_classes=20).to(device)
-                opt = AdaGradStrict(model.parameters(), lr=lr, delta=delta, matrix_type='diagonal')
+        for acc in accs:
+            set_seeds(42)
+            model = LogisticRegression(input_dim=20000, num_classes=20).to(device)
+            opt = AdaGradStrict(model.parameters(), lr=lr, matrix_type='diagonal')
+            
+            if acc > 0:
+                inject_initial_accumulator(opt, model, acc)
                 
-                if acc > 0:
-                    inject_initial_accumulator(opt, model, acc)
-                    
-                hist = train(model, opt, train_loader, test_loader, epochs=10, device=device)
-                histories[(lr, delta, acc)] = hist
-                
-                speed = hist['convergence_speed']
-                var = hist['smoothness_variance']
-                floss = hist['final_train_loss']
-                print(f"{lr:<5} | {delta:<6} | {acc:<4} | {speed:8.4f} | {var:8.4f} | {floss:.4f}")
-                
+            hist = train(model, opt, train_loader, test_loader, epochs=20, device=device)
+            histories[(lr, acc)] = hist
+            
+            speed = hist['convergence_speed']
+            var = hist['smoothness_variance']
+            floss = hist['final_train_loss']
+            print(f"{lr:<5} | {acc:<4} | {speed:8.4f} | {var:8.4f} | {floss:.4f}")
+            
     plot_utils.plot_part1(histories)
 
 def run_part2(device, train_loader, test_loader):
@@ -143,6 +141,26 @@ def run_part4(device, train_loader, test_loader):
     
     plot_utils.plot_part4(h_un, h_c)
 
+def run_part5(device, train_loader, test_loader):
+    print_part_header("Part 5: Regularization Comparison (None vs L1 vs L2)")
+    lam = 0.005
+    
+    configs = [
+        ("No Reg", {'regularizer': 'none'}),
+        ("L1 Reg", {'regularizer': 'l1', 'lambda_reg': lam}),
+        ("L2 Reg", {'regularizer': 'l2', 'lambda_reg': lam}),
+    ]
+    
+    histories = {}
+    for name, kwargs in configs:
+        set_seeds(42)
+        model = LogisticRegression(20000, 20).to(device)
+        opt = AdaGradStrict(model.parameters(), lr=0.01, **kwargs)
+        hist = train(model, opt, train_loader, test_loader, epochs=10, device=device)
+        histories[name] = hist
+    
+    plot_utils.plot_part5(histories)
+
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f"Using device: {device}")
@@ -156,5 +174,6 @@ if __name__ == "__main__":
     run_part2(device, train_ld, test_ld)
     run_part3(device, train_ld, test_ld)
     run_part4(device, train_ld, test_ld)
+    run_part5(device, train_ld, test_ld)
     
-    print("\nAll Part 1-4 Experiments successfully generated to plots/ folder.")
+    print("\nAll Part 1-5 Experiments successfully generated to plots/ folder.")
