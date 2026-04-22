@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+import time
+import numpy as np
 
 def evaluate(model, data_loader, device='cpu'):
     model.eval()
@@ -25,40 +27,54 @@ def evaluate(model, data_loader, device='cpu'):
     return avg_loss, accuracy
 
 def get_optimizer_state_sum(optimizer, param):
-    """Helper to extract diagonal state sums uniformly from custom or native Adagrad."""
     state = optimizer.state[param]
     if 'sum' in state: 
-        return state['sum'] # Native PyTorch Adagrad
+        return state['sum'] 
     elif 'sum_sq' in state:
-        return state['sum_sq'] # Our Custom AdaGradStrict
+        return state['sum_sq']
     elif 'G' in state:
-        # Full matrix fallback (not used in text pipeline but safe mapping)
         return torch.diag(state['G'])
     return None
 
-def train_epoch(model, optimizer, data_loader, epoch, device='cpu'):
+def train_epoch(model, optimizer, data_loader, epoch, device='cpu', pytorch_l1_penalty=0.0):
     model.train()
     criterion = nn.CrossEntropyLoss()
     
-    iteration_metrics = {
+    iter_metrics = {
         'loss': [],
         'grad_norm': [],
         'param_norm': [],
         'update_magnitude': []
     }
     
-    # We will compute the exact update magnitude by comparing theta_t and theta_{t-1}
+    epoch_correct = 0
+    epoch_total = 0
+    epoch_loss_sum = 0.0
+    
     old_params = [p.clone().detach() for p in model.parameters() if p.requires_grad]
     
-    for X, y in tqdm(data_loader, desc=f"Epoch {epoch}"):
+    for X, y in data_loader:
         X, y = X.to(device), y.to(device)
         
         optimizer.zero_grad()
         outputs = model(X)
         loss = criterion(outputs, y)
+        
+        # Log accuracy/loss
+        with torch.no_grad():
+            _, predicted = torch.max(outputs.data, 1)
+            epoch_total += y.size(0)
+            epoch_correct += (predicted == y).sum().item()
+            epoch_loss_sum += loss.item() * y.size(0)
+            iter_metrics['loss'].append(loss.item())
+        
+        # Inject Custom PyTorch L1 Penalty before backward
+        if pytorch_l1_penalty > 0.0:
+            l1_loss = sum(p.abs().sum() for p in model.parameters() if p.requires_grad)
+            loss = loss + pytorch_l1_penalty * l1_loss
+            
         loss.backward()
         
-        # Track gradient norm before step
         total_grad_norm = 0.0
         for p in model.parameters():
             if p.grad is not None:
@@ -67,7 +83,6 @@ def train_epoch(model, optimizer, data_loader, epoch, device='cpu'):
         
         optimizer.step()
         
-        # Track parameter norm & update magnitude
         total_param_norm = 0.0
         total_update_mag = 0.0
         new_params = []
@@ -82,41 +97,67 @@ def train_epoch(model, optimizer, data_loader, epoch, device='cpu'):
         total_update_mag = total_update_mag ** 0.5
         old_params = new_params
         
-        # Log to structural dict
-        iteration_metrics['loss'].append(loss.item())
-        iteration_metrics['grad_norm'].append(total_grad_norm)
-        iteration_metrics['param_norm'].append(total_param_norm)
-        iteration_metrics['update_magnitude'].append(total_update_mag)
+        iter_metrics['grad_norm'].append(total_grad_norm)
+        iter_metrics['param_norm'].append(total_param_norm)
+        iter_metrics['update_magnitude'].append(total_update_mag)
         
-    return iteration_metrics
+    epoch_avg_loss = epoch_loss_sum / epoch_total
+    epoch_acc = epoch_correct / epoch_total
+    return iter_metrics, epoch_avg_loss, epoch_acc
 
-def train(model, optimizer, train_loader, test_loader, epochs=5, device='cpu'):
+def train(model, optimizer, train_loader, test_loader, epochs=5, device='cpu', pytorch_l1_penalty=0.0):
     history = {
-        'train_loss': [], # list of list of loss per batch
-        'grad_norm': [], 
-        'param_norm': [],
-        'update_magnitude': [],
-        'test_accuracy': [],
-        'test_loss': []
+        'iter_train_loss': [],
+        'iter_grad_norm': [], 
+        'iter_param_norm': [],
+        'iter_update_magnitude': [],
+        
+        'epoch_train_loss': [],
+        'epoch_train_accuracy': [],
+        'epoch_test_loss': [],
+        'epoch_test_accuracy': [],
+        
+        'epoch_exact_zeros': [],
+        'epoch_l1_norm': [],
+        'time_taken': 0.0
     }
     
-    # Pre-evaluate for 0-epoch baseline
-    test_loss, test_acc = evaluate(model, test_loader, device)
-    history['test_loss'].append(test_loss)
-    history['test_accuracy'].append(test_acc)
-    print(f"Epoch 0: Test Loss {test_loss:.4f}, Test Acc {test_acc:.4f}")
-
+    start_time = time.time()
     for epoch in range(1, epochs + 1):
-        iter_metrics = train_epoch(model, optimizer, train_loader, epoch, device)
+        iter_metrics, ep_train_loss, ep_train_acc = train_epoch(
+            model, optimizer, train_loader, epoch, device, pytorch_l1_penalty
+        )
         
-        history['train_loss'].extend(iter_metrics['loss'])
-        history['grad_norm'].extend(iter_metrics['grad_norm'])
-        history['param_norm'].extend(iter_metrics['param_norm'])
-        history['update_magnitude'].extend(iter_metrics['update_magnitude'])
+        history['iter_train_loss'].extend(iter_metrics['loss'])
+        history['iter_grad_norm'].extend(iter_metrics['grad_norm'])
+        history['iter_param_norm'].extend(iter_metrics['param_norm'])
+        history['iter_update_magnitude'].extend(iter_metrics['update_magnitude'])
+        
+        history['epoch_train_loss'].append(ep_train_loss)
+        history['epoch_train_accuracy'].append(ep_train_acc)
         
         test_loss, test_acc = evaluate(model, test_loader, device)
-        history['test_loss'].append(test_loss)
-        history['test_accuracy'].append(test_acc)
-        print(f"Epoch {epoch}: Test Loss {test_loss:.4f}, Test Acc {test_acc:.4f}")
+        history['epoch_test_loss'].append(test_loss)
+        history['epoch_test_accuracy'].append(test_acc)
+        
+        # Calculate new specific metrics
+        exact_zeros = sum((p == 0.0).sum().item() for p in model.parameters() if p.requires_grad)
+        l1_norm = sum(p.abs().sum().item() for p in model.parameters() if p.requires_grad)
+        
+        history['epoch_exact_zeros'].append(exact_zeros)
+        history['epoch_l1_norm'].append(l1_norm)
+        
+    history['time_taken'] = time.time() - start_time
+    
+    # Calculate convergence metrics
+    if len(history['epoch_train_loss']) > 1:
+        loss_diff = np.diff(history['epoch_train_loss'])
+        history['convergence_speed'] = -np.mean(loss_diff) # avg drop per epoch
+        history['smoothness_variance'] = np.var(history['epoch_train_loss'])
+    else:
+        history['convergence_speed'] = 0.0
+        history['smoothness_variance'] = 0.0
+        
+    history['final_train_loss'] = history['epoch_train_loss'][-1]
         
     return history

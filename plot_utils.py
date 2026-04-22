@@ -2,96 +2,83 @@ import matplotlib.pyplot as plt
 import os
 import collections
 
-def plot_comparisons(history1, name1, history2, name2, output_dir="plots"):
+def set_style():
+    # Helper to clean plots
+    plt.grid(True, alpha=0.3)
+
+def plot_part1(histories, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
     
-    # 1. Loss vs iterations
-    plt.figure(figsize=(10, 6))
-    plt.plot(history1['train_loss'], label=name1, alpha=0.9, linewidth=3)
-    plt.plot(history2['train_loss'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
-    plt.xlabel('Iterations (Batches)')
-    plt.ylabel('Training Loss (Cross Entropy)')
-    plt.title('Loss vs Iterations')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(output_dir, 'loss_vs_iter.png'))
-    plt.close()
-
-    # 2. Accuracy vs epochs
-    plt.figure(figsize=(10, 6))
-    # Assuming history contains 0th epoch
-    epochs = list(range(len(history1['test_accuracy'])))
-    plt.plot(epochs, history1['test_accuracy'], marker='o', markersize=8, label=name1, linewidth=3, alpha=0.8)
-    plt.plot(epochs, history2['test_accuracy'], marker='X', markersize=6, label=name2, linewidth=2, linestyle='--', alpha=0.8)
-    plt.xlabel('Epochs')
-    plt.ylabel('Test Accuracy')
-    plt.title('Accuracy vs Epochs')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(output_dir, 'accuracy_vs_epoch.png'))
-    plt.close()
-
-    # 3. Gradient norm vs iterations
-    plt.figure(figsize=(10, 6))
-    plt.plot(history1['grad_norm'], label=name1, alpha=0.9, linewidth=3)
-    plt.plot(history2['grad_norm'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
-    plt.xlabel('Iterations')
-    plt.ylabel('Gradient Norm ||g_t||')
-    plt.title('Gradient Norm vs Iterations')
-    plt.yscale('log')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(output_dir, 'grad_norm_vs_iter.png'))
-    plt.close()
-
-    # 4. Update magnitude vs iterations
-    plt.figure(figsize=(10, 6))
-    plt.plot(history1['update_magnitude'], label=name1, alpha=0.9, linewidth=3)
-    plt.plot(history2['update_magnitude'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
-    plt.xlabel('Iterations')
-    plt.ylabel('Update Magnitude ||\Delta \\theta_t||')
-    plt.yscale('log')
-    plt.title('Update Magnitude vs Iterations')
-    plt.legend()
-    plt.grid(True)
-    plt.savefig(os.path.join(output_dir, 'update_mag_vs_iter.png'))
-    plt.close()
+    # Needs 4 plots per instructions
+    fig_names = [
+        ('epoch_train_loss', 'Training Loss vs Epochs'),
+        ('epoch_test_loss', 'Test Loss vs Epochs'),
+        ('epoch_train_accuracy', 'Training Accuracy vs Epochs'),
+        ('epoch_test_accuracy', 'Test Accuracy vs Epochs')
+    ]
     
-    print(f"Plots saved to {output_dir}/")
+    for metric, title in fig_names:
+        plt.figure(figsize=(10, 6))
+        for (lr, delta, init_acc), hist in histories.items():
+            epochs = list(range(1, 1 + len(hist[metric])))
+            plt.plot(epochs, hist[metric], label=f"({lr},{delta},{init_acc})", alpha=0.7)
+        plt.xlabel('Epochs')
+        plt.ylabel(title.split(' ')[0])
+        plt.title(title)
+        # Put legend outside
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f'part1_{metric}.png'))
+        plt.close()
 
-def plot_effective_lr(top_frequent_lrs, top_rare_lrs, output_path="plots/effective_lr.png"):
-    plt.figure(figsize=(8, 6))
-    plt.bar(['Top 100 Frequent Features', 'Top 100 Rare Features'], 
-            [top_frequent_lrs, top_rare_lrs], 
-            color=['blue', 'orange'])
-    plt.ylabel('Average Final Effective LR (\eta / sqrt(G_t))')
-    plt.title('Adagrad Effective Learning Rates: Frequent vs Rare')
-    plt.grid(axis='y')
-    plt.savefig(output_path)
+def plot_part2(h_custom, h_pytorch, output_dir="plots"):
+    os.makedirs(output_dir, exist_ok=True)
+    
+    plt.figure(figsize=(8, 5))
+    e_custom = list(range(1, 1 + len(h_custom['epoch_exact_zeros'])))
+    e_native = list(range(1, 1 + len(h_pytorch['epoch_exact_zeros'])))
+    
+    plt.plot(e_custom, h_custom['epoch_exact_zeros'], marker='o', label="Custom (Exact Soft-Thresholding)")
+    plt.plot(e_native, h_pytorch['epoch_exact_zeros'], marker='x', label="PyTorch (L1 Penalty)")
+    plt.xlabel('Epochs')
+    plt.ylabel('Exact Zero Weights')
+    plt.title('Part 2: True Sparsity Test (Exact 0.0s vs Epoch)')
+    plt.legend()
+    set_style()
+    plt.savefig(os.path.join(output_dir, 'part2_true_sparsity.png'))
     plt.close()
 
-def plot_ablation(ablation_histories, output_dir="plots"):
-    # 1. Loss vs iterations
-    plt.figure(figsize=(12, 8))
-    for (lr, delta), hist in ablation_histories.items():
-        plt.plot(hist['train_loss'], label=f"LR={lr}, delta={delta}", alpha=0.7)
-    plt.xlabel('Iterations')
-    plt.ylabel('Training Loss')
-    plt.title('Ablation Study: Loss vs Iterations')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'ablation_loss_vs_iter.png'))
-    plt.close()
+def plot_part3(h_cmd, h_pd, output_dir="plots"):
+    os.makedirs(output_dir, exist_ok=True)
+    
+    for metric in ['epoch_train_loss', 'epoch_test_loss']:
+        plt.figure(figsize=(8, 5))
+        e = list(range(1, 1 + len(h_cmd[metric])))
+        plt.plot(e, h_cmd[metric], marker='s', label="Update: CMD")
+        plt.plot(e, h_pd[metric], marker='d', label="Update: Primal Dual")
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
+        plt.title(f'Part 3: {metric.replace("_", " ").title()}')
+        plt.legend()
+        set_style()
+        plt.savefig(os.path.join(output_dir, f'part3_{metric}.png'))
+        plt.close()
 
-    # 2. Update Magnitude vs Iterations
-    plt.figure(figsize=(12, 8))
-    for (lr, delta), hist in ablation_histories.items():
-        plt.plot(hist['update_magnitude'], label=f"LR={lr}, delta={delta}", alpha=0.7)
-    plt.yscale('log')
-    plt.xlabel('Iterations')
-    plt.ylabel('Update Magnitude ||\Delta \\theta_t||')
-    plt.title('Ablation Study: Update Magnitude vs Iterations')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'ablation_update_mag_vs_iter.png'))
+def plot_part4(h_unconstrained, h_constrained, output_dir="plots"):
+    os.makedirs(output_dir, exist_ok=True)
+    
+    plt.figure(figsize=(8, 5))
+    e = list(range(1, 1 + len(h_unconstrained['epoch_l1_norm'])))
+    plt.plot(e, h_unconstrained['epoch_l1_norm'], label="Unconstrained AdaGrad")
+    plt.plot(e, h_constrained['epoch_l1_norm'], label="L1 Bounded (c=5.0)")
+    
+    # Draw bound line
+    plt.axhline(y=5.0, color='r', linestyle='--', label='Constraint Limit (c=5.0)')
+    
+    plt.xlabel('Epochs')
+    plt.ylabel('Parameter L1 Norm')
+    plt.title('Part 4: Constrained Optimization Projection')
+    plt.legend()
+    set_style()
+    plt.savefig(os.path.join(output_dir, 'part4_l1_norm.png'))
     plt.close()
