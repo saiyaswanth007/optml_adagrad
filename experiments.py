@@ -71,13 +71,14 @@ def run_part1(device, train_loader, test_loader, input_dim):
     accs = [0, 1.0]
     
     histories = {}
+    native_histories = {}
     
     print(f"{'LR':<5} | {'Acc':<4} | {'Speed':<8} | {'Variance':<8} | {'Final Loss'}")
     print("-" * 50)
     for lr in lrs:
         for acc in accs:
             set_seeds(42)
-            model = LogisticRegression(input_dim=input_dim, num_classes=20).to(device)
+            model = LogisticRegression(input_dim, 20).to(device)
             opt = AdaGradStrict(model.parameters(), lr=lr, matrix_type='diagonal')
             
             if acc > 0:
@@ -89,13 +90,24 @@ def run_part1(device, train_loader, test_loader, input_dim):
             speed = hist['convergence_speed']
             var = hist['smoothness_variance']
             floss = hist['final_train_loss']
-            print(f"{lr:<5} | {acc:<4} | {speed:8.4f} | {var:8.4f} | {floss:.4f}")
+            print(f"{lr:<5} | {acc:<4} | {speed:8.4f} | {var:8.4f} | {floss:.4f} (Custom)")
             
-    plot_utils.plot_part1(histories)
+        set_seeds(42)
+        model_native = LogisticRegression(input_dim, 20).to(device)
+        opt_native = torch.optim.Adagrad(model_native.parameters(), lr=lr)
+        hist_native = train(model_native, opt_native, train_loader, test_loader, epochs=30, device=device)
+        native_histories[lr] = hist_native
+        
+        speed = hist_native['convergence_speed']
+        var = hist_native['smoothness_variance']
+        floss = hist_native['final_train_loss']
+        print(f"{lr:<5} | {'N/A':<4} | {speed:8.4f} | {var:8.4f} | {floss:.4f} (Native)")
+            
+    plot_utils.plot_part1(histories, native_histories)
 
 def run_part2(device, train_loader, test_loader, input_dim):
     print_part_header("Part 2: True Sparsity Test (Custom L1 vs PyTorch)")
-    lam = 0.005 
+    lam = 1e-5 # Scaled down appropriately for 1,000,000 parameters
     
     set_seeds(42)
     model_custom = LogisticRegression(input_dim, 20).to(device)
@@ -111,7 +123,7 @@ def run_part2(device, train_loader, test_loader, input_dim):
 
 def run_part3(device, train_loader, test_loader, input_dim):
     print_part_header("Part 3: Algorithm Comparison (CMD vs Primal-Dual)")
-    lam = 0.05 
+    lam = 5e-4 # Scaled down for L2
     
     set_seeds(42)
     model_cmd = LogisticRegression(input_dim, 20).to(device)
@@ -123,7 +135,12 @@ def run_part3(device, train_loader, test_loader, input_dim):
     opt_pd = AdaGradStrict(model_pd.parameters(), lr=0.05, update_type='primal_dual', regularizer='l2', lambda_reg=lam)
     h_pd = train(model_pd, opt_pd, train_loader, test_loader, epochs=30, device=device)
     
-    plot_utils.plot_part3(h_cmd, h_pd)
+    set_seeds(42)
+    model_native = LogisticRegression(input_dim, 20).to(device)
+    opt_native = torch.optim.Adagrad(model_native.parameters(), lr=0.05, weight_decay=lam)
+    h_native = train(model_native, opt_native, train_loader, test_loader, epochs=30, device=device)
+    
+    plot_utils.plot_part3(h_cmd, h_pd, h_native)
 
 def run_part4(device, train_loader, test_loader, input_dim):
     print_part_header("Part 4: Constrained Optimization (L1 Ball Projection)")
@@ -139,11 +156,16 @@ def run_part4(device, train_loader, test_loader, input_dim):
     opt_c = AdaGradStrict(model_c.parameters(), lr=0.1, domain='l1_ball', domain_c=bound)
     h_c = train(model_c, opt_c, train_loader, test_loader, epochs=30, device=device)
     
-    plot_utils.plot_part4(h_un, h_c)
+    set_seeds(42)
+    model_native = LogisticRegression(input_dim, 20).to(device)
+    opt_native = torch.optim.Adagrad(model_native.parameters(), lr=0.1)
+    h_native = train(model_native, opt_native, train_loader, test_loader, epochs=30, device=device)
+    
+    plot_utils.plot_part4(h_un, h_c, h_native)
 
 def run_part5(device, train_loader, test_loader, input_dim):
     print_part_header("Part 5: Regularization Comparison (None vs L1 vs L2)")
-    lam = 0.005
+    lam = 1e-5
     
     configs = [
         ("No Reg", {'regularizer': 'none'}),
@@ -158,8 +180,21 @@ def run_part5(device, train_loader, test_loader, input_dim):
         opt = AdaGradStrict(model.parameters(), lr=0.01, **kwargs)
         hist = train(model, opt, train_loader, test_loader, epochs=30, device=device)
         histories[name] = hist
+        
+    native_histories = {}
+    native_configs = [
+        ("PyTorch Nat No Reg", 0.0, 0.0),
+        ("PyTorch Nat L1", lam, 0.0),
+        ("PyTorch Nat L2", 0.0, lam),
+    ]
+    for name, l1_pen, l2_pen in native_configs:
+        set_seeds(42)
+        model = LogisticRegression(input_dim, 20).to(device)
+        opt = torch.optim.Adagrad(model.parameters(), lr=0.01, weight_decay=l2_pen)
+        hist = train(model, opt, train_loader, test_loader, epochs=30, device=device, pytorch_l1_penalty=l1_pen)
+        native_histories[name] = hist
     
-    plot_utils.plot_part5(histories)
+    plot_utils.plot_part5(histories, native_histories)
 
 if __name__ == "__main__":
     device = 'cuda' if torch.cuda.is_available() else 'cpu'

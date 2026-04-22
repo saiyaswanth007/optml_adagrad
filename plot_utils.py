@@ -57,7 +57,7 @@ def plot_effective_lr(top_frequent_lrs, top_rare_lrs, output_path="plots/effecti
     plt.savefig(output_path)
     plt.close()
 
-def plot_part1(histories, output_dir="plots"):
+def plot_part1(histories, native_histories, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
     settings = "matrix=diagonal | update=cmd | domain=unconstrained | reg=none | ε=1e-8 | epochs=20"
     
@@ -73,7 +73,11 @@ def plot_part1(histories, output_dir="plots"):
         fig, ax = plt.subplots(figsize=(10, 6))
         for (lr, init_acc), hist in histories.items():
             x_axis = list(range(1, 1 + len(hist[metric])))
-            ax.plot(x_axis, hist[metric], label=f"lr={lr}, acc={init_acc}", alpha=0.7)
+            ax.plot(x_axis, hist[metric], label=f"Custom: lr={lr}, acc={init_acc}", alpha=0.7)
+            
+        for lr, hist in native_histories.items():
+            x_axis = list(range(1, 1 + len(hist[metric])))
+            ax.plot(x_axis, hist[metric], label=f"PyTorch: lr={lr}", alpha=0.7, linestyle='--')
         ax.set_xlabel(xlabel)
         ax.set_ylabel(title.split(' ')[0])
         ax.set_title(f'Part 1: {title}')
@@ -117,15 +121,16 @@ def plot_part2(h_custom, h_pytorch, output_dir="plots"):
     plt.savefig(os.path.join(output_dir, 'part2_iter_train_loss.png'))
     plt.close()
 
-def plot_part3(h_cmd, h_pd, output_dir="plots"):
+def plot_part3(h_cmd, h_pd, h_native, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
     settings = "matrix=diagonal | domain=unconstrained | reg=l2 | η=0.05 | ε=1e-8 | λ=0.05 | epochs=20"
     
     for metric, xlabel in [('epoch_train_loss', 'Epochs'), ('epoch_test_loss', 'Epochs'), ('iter_train_loss', 'Iterations')]:
         fig, ax = plt.subplots(figsize=(8, 5))
         e = list(range(1, 1 + len(h_cmd[metric])))
-        ax.plot(e, h_cmd[metric], marker='s' if 'epoch' in metric else None, label="Update: CMD", alpha=0.7)
-        ax.plot(e, h_pd[metric], marker='d' if 'epoch' in metric else None, label="Update: Primal-Dual", linestyle='--', alpha=0.7)
+        ax.plot(e, h_cmd[metric], marker='s' if 'epoch' in metric else None, label="Custom Update: CMD", alpha=0.7)
+        ax.plot(e, h_pd[metric], marker='d' if 'epoch' in metric else None, label="Custom Update: Primal-Dual", linestyle='--', alpha=0.7)
+        ax.plot(e, h_native[metric], marker='^' if 'epoch' in metric else None, label="PyTorch Native (L2 Weight Decay)", linestyle=':', linewidth=2, alpha=0.8)
         ax.set_xlabel(xlabel)
         ax.set_ylabel('Loss')
         ax.set_title(f'Part 3: {metric.replace("_", " ").title()}')
@@ -138,8 +143,9 @@ def plot_part3(h_cmd, h_pd, output_dir="plots"):
 
     # Gradient Norm vs Iterations
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(h_cmd['iter_grad_norm'], label="Update: CMD", alpha=0.7)
-    ax.plot(h_pd['iter_grad_norm'], label="Update: Primal-Dual", alpha=0.7, linestyle='--')
+    ax.plot(h_cmd['iter_grad_norm'], label="Custom Update: CMD", alpha=0.7)
+    ax.plot(h_pd['iter_grad_norm'], label="Custom Update: Primal-Dual", alpha=0.7, linestyle='--')
+    ax.plot(h_native['iter_grad_norm'], label="PyTorch Native (L2 Weight Decay)", linestyle=':', linewidth=2, alpha=0.8)
     ax.set_xlabel('Iterations')
     ax.set_ylabel('Gradient Norm ||g_t||')
     ax.set_yscale('log')
@@ -153,8 +159,9 @@ def plot_part3(h_cmd, h_pd, output_dir="plots"):
 
     # Update Magnitude vs Iterations
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(h_cmd['iter_update_magnitude'], label="Update: CMD", alpha=0.7)
-    ax.plot(h_pd['iter_update_magnitude'], label="Update: Primal-Dual", alpha=0.7, linestyle='--')
+    ax.plot(h_cmd['iter_update_magnitude'], label="Custom Update: CMD", alpha=0.7)
+    ax.plot(h_pd['iter_update_magnitude'], label="Custom Update: Primal-Dual", alpha=0.7, linestyle='--')
+    ax.plot(h_native['iter_update_magnitude'], label="PyTorch Native (L2 Weight Decay)", linestyle=':', linewidth=2, alpha=0.8)
     ax.set_xlabel('Iterations')
     ax.set_ylabel('Update Magnitude ||Δθ_t||')
     ax.set_yscale('log')
@@ -166,14 +173,15 @@ def plot_part3(h_cmd, h_pd, output_dir="plots"):
     plt.savefig(os.path.join(output_dir, 'part3_iter_update_mag.png'))
     plt.close()
 
-def plot_part4(h_unconstrained, h_constrained, output_dir="plots"):
+def plot_part4(h_unconstrained, h_constrained, h_native, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
     settings = "matrix=diagonal | update=cmd | reg=none | η=0.1 | ε=1e-8 | epochs=20"
     
     fig, ax = plt.subplots(figsize=(8, 5))
     e = list(range(1, 1 + len(h_unconstrained['epoch_l1_norm'])))
-    ax.plot(e, h_unconstrained['epoch_l1_norm'], label="Unconstrained (domain=unconstrained)")
-    ax.plot(e, h_constrained['epoch_l1_norm'], label="L1 Bounded (domain=l1_ball, c=5.0)")
+    ax.plot(e, h_unconstrained['epoch_l1_norm'], label="Custom Unconstrained")
+    ax.plot(e, h_constrained['epoch_l1_norm'], label="Custom L1 Bounded (domain=l1_ball, c=5.0)")
+    ax.plot(e, h_native['epoch_l1_norm'], label="PyTorch Native (Unconstrained)", linestyle='--', linewidth=2)
     
     # Draw bound line
     ax.axhline(y=5.0, color='r', linestyle='--', label='Constraint Limit (c=5.0)')
@@ -188,32 +196,50 @@ def plot_part4(h_unconstrained, h_constrained, output_dir="plots"):
     plt.savefig(os.path.join(output_dir, 'part4_l1_norm.png'))
     plt.close()
 
-def plot_part5(histories, output_dir="plots"):
+def plot_part5(histories, native_histories, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
-    settings = "matrix=diagonal | update=cmd | domain=unconstrained | η=0.01 | ε=1e-8 | λ=0.005 | epochs=20"
+    settings = "matrix=diagonal | update=cmd | domain=unconstrained | η=0.01 | ε=1e-8 | λ=1e-5 | epochs=20"
     
-    styles = {'No Reg': ('tab:blue', '-', 'o'), 'L1 Reg': ('tab:orange', '--', 's'), 'L2 Reg': ('tab:green', '-.', 'd')}
+    styles = {'No Reg': ('tab:blue', '-', 'o'), 'L1 Reg': ('tab:orange', '-', 's'), 'L2 Reg': ('tab:green', '-', 'd')}
+    native_styles = {'PyTorch Nat No Reg': ('tab:blue', '--', '^'), 'PyTorch Nat L1': ('tab:orange', '--', 'v'), 'PyTorch Nat L2': ('tab:green', '--', '<')}
     
-    # Training Loss vs Epochs
-    fig, ax = plt.subplots(figsize=(10, 6))
-    for name, hist in histories.items():
-        color, ls, marker = styles[name]
-        e = list(range(1, 1 + len(hist['epoch_train_loss'])))
-        ax.plot(e, hist['epoch_train_loss'], label=name, color=color, linestyle=ls, marker=marker)
-    ax.set_xlabel('Epochs')
-    ax.set_ylabel('Training Loss')
-    ax.set_title('Part 5: Regularization Comparison — Training Loss')
-    add_settings_subtitle(ax, settings)
-    ax.legend()
-    set_style()
-    plt.tight_layout()
-    plt.savefig(os.path.join(output_dir, 'part5_epoch_train_loss.png'))
-    plt.close()
+    metrics_to_plot = [
+        ('epoch_train_loss', 'Training Loss'),
+        ('epoch_test_loss', 'Test Loss'),
+        ('epoch_train_accuracy', 'Training Accuracy'),
+        ('epoch_test_accuracy', 'Test Accuracy')
+    ]
+    
+    for metric_key, title_metric in metrics_to_plot:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        for name, hist in histories.items():
+            color, ls, marker = styles[name]
+            e = list(range(1, 1 + len(hist[metric_key])))
+            ax.plot(e, hist[metric_key], label=f"Custom: {name}", color=color, linestyle=ls, marker=marker)
+            
+        for name, hist in native_histories.items():
+            color, ls, marker = native_styles[name]
+            e = list(range(1, 1 + len(hist[metric_key])))
+            ax.plot(e, hist[metric_key], label=name, color=color, linestyle=ls, marker=marker)
+        ax.set_xlabel('Epochs')
+        ax.set_ylabel(title_metric)
+        ax.set_title(f'Part 5: Regularization Comparison — {title_metric}')
+        add_settings_subtitle(ax, settings)
+        ax.legend()
+        set_style()
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f'part5_{metric_key}.png'))
+        plt.close()
 
     # Exact Zeros vs Epochs
     fig, ax = plt.subplots(figsize=(10, 6))
     for name, hist in histories.items():
         color, ls, marker = styles[name]
+        e = list(range(1, 1 + len(hist['epoch_exact_zeros'])))
+        ax.plot(e, hist['epoch_exact_zeros'], label=f"Custom: {name}", color=color, linestyle=ls, marker=marker)
+        
+    for name, hist in native_histories.items():
+        color, ls, marker = native_styles[name]
         e = list(range(1, 1 + len(hist['epoch_exact_zeros'])))
         ax.plot(e, hist['epoch_exact_zeros'], label=name, color=color, linestyle=ls, marker=marker)
     ax.set_xlabel('Epochs')
@@ -230,6 +256,11 @@ def plot_part5(histories, output_dir="plots"):
     fig, ax = plt.subplots(figsize=(10, 6))
     for name, hist in histories.items():
         color, ls, marker = styles[name]
+        e = list(range(1, 1 + len(hist['epoch_l1_norm'])))
+        ax.plot(e, hist['epoch_l1_norm'], label=f"Custom: {name}", color=color, linestyle=ls, marker=marker)
+        
+    for name, hist in native_histories.items():
+        color, ls, marker = native_styles[name]
         e = list(range(1, 1 + len(hist['epoch_l1_norm'])))
         ax.plot(e, hist['epoch_l1_norm'], label=name, color=color, linestyle=ls, marker=marker)
     ax.set_xlabel('Epochs')
