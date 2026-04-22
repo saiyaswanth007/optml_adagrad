@@ -32,7 +32,7 @@ class SparseDataset(Dataset):
     def __getitem__(self, idx):
         return self.X_dense[idx], self.y_tensor[idx]
 
-def get_dataloaders(max_features=20000, batch_size=64, seed=42):
+def get_dataloaders(max_features=50000, batch_size=64, seed=42):
     set_seeds(seed)
     
     print("Fetching 20 Newsgroups dataset...")
@@ -40,8 +40,14 @@ def get_dataloaders(max_features=20000, batch_size=64, seed=42):
     newsgroups_train = fetch_20newsgroups(subset='train', remove=('headers', 'footers', 'quotes'))
     newsgroups_test = fetch_20newsgroups(subset='test', remove=('headers', 'footers', 'quotes'))
     
-    print(f"Vectorizing (max_features={max_features})...")
-    vectorizer = TfidfVectorizer(max_features=max_features)
+    print("Vectorizing...")
+    vectorizer = TfidfVectorizer(
+        stop_words='english',
+        max_df=0.95,
+        min_df=5,
+        ngram_range=(1,1),
+        max_features=max_features
+    )
     X_train = vectorizer.fit_transform(newsgroups_train.data)
     X_test = vectorizer.transform(newsgroups_test.data)
     
