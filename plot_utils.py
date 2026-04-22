@@ -7,8 +7,8 @@ def plot_comparisons(history1, name1, history2, name2, output_dir="plots"):
     
     # 1. Loss vs iterations
     plt.figure(figsize=(10, 6))
-    plt.plot(history1['train_loss'], label=name1, alpha=0.8)
-    plt.plot(history2['train_loss'], label=name2, alpha=0.8)
+    plt.plot(history1['train_loss'], label=name1, alpha=0.9, linewidth=3)
+    plt.plot(history2['train_loss'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
     plt.xlabel('Iterations (Batches)')
     plt.ylabel('Training Loss (Cross Entropy)')
     plt.title('Loss vs Iterations')
@@ -21,8 +21,8 @@ def plot_comparisons(history1, name1, history2, name2, output_dir="plots"):
     plt.figure(figsize=(10, 6))
     # Assuming history contains 0th epoch
     epochs = list(range(len(history1['test_accuracy'])))
-    plt.plot(epochs, history1['test_accuracy'], marker='o', label=name1)
-    plt.plot(epochs, history2['test_accuracy'], marker='s', label=name2)
+    plt.plot(epochs, history1['test_accuracy'], marker='o', markersize=8, label=name1, linewidth=3, alpha=0.8)
+    plt.plot(epochs, history2['test_accuracy'], marker='X', markersize=6, label=name2, linewidth=2, linestyle='--', alpha=0.8)
     plt.xlabel('Epochs')
     plt.ylabel('Test Accuracy')
     plt.title('Accuracy vs Epochs')
@@ -33,8 +33,8 @@ def plot_comparisons(history1, name1, history2, name2, output_dir="plots"):
 
     # 3. Gradient norm vs iterations
     plt.figure(figsize=(10, 6))
-    plt.plot(history1['grad_norm'], label=name1, alpha=0.8)
-    plt.plot(history2['grad_norm'], label=name2, alpha=0.8)
+    plt.plot(history1['grad_norm'], label=name1, alpha=0.9, linewidth=3)
+    plt.plot(history2['grad_norm'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
     plt.xlabel('Iterations')
     plt.ylabel('Gradient Norm ||g_t||')
     plt.title('Gradient Norm vs Iterations')
@@ -46,8 +46,8 @@ def plot_comparisons(history1, name1, history2, name2, output_dir="plots"):
 
     # 4. Update magnitude vs iterations
     plt.figure(figsize=(10, 6))
-    plt.plot(history1['update_magnitude'], label=name1, alpha=0.8)
-    plt.plot(history2['update_magnitude'], label=name2, alpha=0.8)
+    plt.plot(history1['update_magnitude'], label=name1, alpha=0.9, linewidth=3)
+    plt.plot(history2['update_magnitude'], label=name2, alpha=0.9, linewidth=2, linestyle='--')
     plt.xlabel('Iterations')
     plt.ylabel('Update Magnitude ||\Delta \\theta_t||')
     plt.yscale('log')
