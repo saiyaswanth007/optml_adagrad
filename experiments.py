@@ -30,12 +30,12 @@ def run_baseline_comparison(device, train_loader, test_loader):
     set_seeds(42)
     model_custom = LogisticRegression(input_dim=20000, num_classes=20).to(device)
     opt_custom = AdaGradStrict(model_custom.parameters(), lr=0.01, matrix_type='diagonal')
-    h_custom = train(model_custom, opt_custom, train_loader, test_loader, epochs=2, device=device)
+    h_custom = train(model_custom, opt_custom, train_loader, test_loader, epochs=10, device=device)
     
     set_seeds(42)
     model_native = LogisticRegression(input_dim=20000, num_classes=20).to(device)
     opt_native = torch.optim.Adagrad(model_native.parameters(), lr=0.01)
-    h_native = train(model_native, opt_native, train_loader, test_loader, epochs=2, device=device)
+    h_native = train(model_native, opt_native, train_loader, test_loader, epochs=10, device=device)
     
     plot_utils.plot_comparisons(h_custom, "AdaGradStrict", h_native, "PyTorch Adagrad")
     return model_custom, opt_custom
@@ -85,7 +85,7 @@ def run_part1(device, train_loader, test_loader):
                 if acc > 0:
                     inject_initial_accumulator(opt, model, acc)
                     
-                hist = train(model, opt, train_loader, test_loader, epochs=2, device=device)
+                hist = train(model, opt, train_loader, test_loader, epochs=10, device=device)
                 histories[(lr, delta, acc)] = hist
                 
                 speed = hist['convergence_speed']
@@ -102,7 +102,7 @@ def run_part2(device, train_loader, test_loader):
     set_seeds(42)
     model_custom = LogisticRegression(20000, 20).to(device)
     opt_custom = AdaGradStrict(model_custom.parameters(), lr=0.01, regularizer='l1', lambda_reg=lam)
-    h_custom = train(model_custom, opt_custom, train_loader, test_loader, epochs=3, device=device)
+    h_custom = train(model_custom, opt_custom, train_loader, test_loader, epochs=10, device=device)
     
     set_seeds(42)
     model_native = LogisticRegression(20000, 20).to(device)
@@ -118,12 +118,12 @@ def run_part3(device, train_loader, test_loader):
     set_seeds(42)
     model_cmd = LogisticRegression(20000, 20).to(device)
     opt_cmd = AdaGradStrict(model_cmd.parameters(), lr=0.05, update_type='cmd', regularizer='l2', lambda_reg=lam)
-    h_cmd = train(model_cmd, opt_cmd, train_loader, test_loader, epochs=3, device=device)
+    h_cmd = train(model_cmd, opt_cmd, train_loader, test_loader, epochs=10, device=device)
     
     set_seeds(42)
     model_pd = LogisticRegression(20000, 20).to(device)
     opt_pd = AdaGradStrict(model_pd.parameters(), lr=0.05, update_type='primal_dual', regularizer='l2', lambda_reg=lam)
-    h_pd = train(model_pd, opt_pd, train_loader, test_loader, epochs=3, device=device)
+    h_pd = train(model_pd, opt_pd, train_loader, test_loader, epochs=10, device=device)
     
     plot_utils.plot_part3(h_cmd, h_pd)
 
@@ -134,12 +134,12 @@ def run_part4(device, train_loader, test_loader):
     set_seeds(42)
     model_un = LogisticRegression(20000, 20).to(device)
     opt_un = AdaGradStrict(model_un.parameters(), lr=0.1) 
-    h_un = train(model_un, opt_un, train_loader, test_loader, epochs=3, device=device)
+    h_un = train(model_un, opt_un, train_loader, test_loader, epochs=10, device=device)
     
     set_seeds(42)
     model_c = LogisticRegression(20000, 20).to(device)
     opt_c = AdaGradStrict(model_c.parameters(), lr=0.1, domain='l1_ball', domain_c=bound)
-    h_c = train(model_c, opt_c, train_loader, test_loader, epochs=3, device=device)
+    h_c = train(model_c, opt_c, train_loader, test_loader, epochs=10, device=device)
     
     plot_utils.plot_part4(h_un, h_c)
 
