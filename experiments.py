@@ -166,14 +166,16 @@ if __name__ == "__main__":
     print(f"Using device: {device}")
     
     train_ld, test_ld, vec = get_dataloaders(max_features=50000, batch_size=64, seed=42)
+    input_dim = len(vec.vocabulary_)
+    print(f"Total vocabulary size (input dimension): {input_dim}")
     
-    model_base, opt_base = run_baseline_comparison(device, train_ld, test_ld)
+    model_base, opt_base = run_baseline_comparison(device, train_ld, test_ld, input_dim)
     run_baseline_sparsity_check(model_base, opt_base, vec, device)
     
-    run_part1(device, train_ld, test_ld)
-    run_part2(device, train_ld, test_ld)
-    run_part3(device, train_ld, test_ld)
-    run_part4(device, train_ld, test_ld)
-    run_part5(device, train_ld, test_ld)
+    run_part1(device, train_ld, test_ld, input_dim)
+    run_part2(device, train_ld, test_ld, input_dim)
+    run_part3(device, train_ld, test_ld, input_dim)
+    run_part4(device, train_ld, test_ld, input_dim)
+    run_part5(device, train_ld, test_ld, input_dim)
     
     print("\nAll Part 1-5 Experiments successfully generated to plots/ folder.")
