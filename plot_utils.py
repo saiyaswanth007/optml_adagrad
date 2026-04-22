@@ -69,3 +69,29 @@ def plot_effective_lr(top_frequent_lrs, top_rare_lrs, output_path="plots/effecti
     plt.grid(axis='y')
     plt.savefig(output_path)
     plt.close()
+
+def plot_ablation(ablation_histories, output_dir="plots"):
+    # 1. Loss vs iterations
+    plt.figure(figsize=(12, 8))
+    for (lr, delta), hist in ablation_histories.items():
+        plt.plot(hist['train_loss'], label=f"LR={lr}, delta={delta}", alpha=0.7)
+    plt.xlabel('Iterations')
+    plt.ylabel('Training Loss')
+    plt.title('Ablation Study: Loss vs Iterations')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'ablation_loss_vs_iter.png'))
+    plt.close()
+
+    # 2. Update Magnitude vs Iterations
+    plt.figure(figsize=(12, 8))
+    for (lr, delta), hist in ablation_histories.items():
+        plt.plot(hist['update_magnitude'], label=f"LR={lr}, delta={delta}", alpha=0.7)
+    plt.yscale('log')
+    plt.xlabel('Iterations')
+    plt.ylabel('Update Magnitude ||\Delta \\theta_t||')
+    plt.title('Ablation Study: Update Magnitude vs Iterations')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'ablation_update_mag_vs_iter.png'))
+    plt.close()

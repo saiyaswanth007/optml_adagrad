@@ -2,7 +2,7 @@ import torch
 from data_loader import get_dataloaders, set_seeds
 from model import LogisticRegression
 from train import train, get_optimizer_state_sum
-from plot_utils import plot_comparisons, plot_effective_lr
+from plot_utils import plot_comparisons, plot_effective_lr, plot_ablation
 from optimizer import AdaGradStrict
 import numpy as np
 import time
@@ -42,7 +42,7 @@ def run_ablation(device):
     
     lrs = [0.1, 0.01, 0.001]
     deltas = [1e-6, 1e-8, 1e-10]
-    
+    ablation_histories = {}
     print("LR | Delta | Final Test Acc | Final Train Loss")
     print("-" * 50)
     for lr in lrs:
@@ -52,7 +52,10 @@ def run_ablation(device):
             # cmd is default, diagonal is default
             opt = AdaGradStrict(model.parameters(), lr=lr, delta=delta, matrix_type='diagonal')
             hist = train(model, opt, train_loader, test_loader, epochs=2, device=device)
+            ablation_histories[(lr, delta)] = hist
             print(f"{lr} | {delta} | {hist['test_accuracy'][-1]:.4f} | {np.mean(hist['train_loss'][-50:]):.4f}")
+            
+    plot_ablation(ablation_histories)
 
 def adagrad_sparsity_check(model, optimizer, vectorizer, device):
     print("\n--- Adagrad-Specific Check (Sparsity) ---")
