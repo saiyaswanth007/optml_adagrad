@@ -147,6 +147,8 @@ def train(model, optimizer, train_loader, test_loader, epochs=5, device='cpu', p
         history['epoch_exact_zeros'].append(exact_zeros)
         history['epoch_l1_norm'].append(l1_norm)
         
+        print(f"  Epoch {epoch}/{epochs} | Train Loss: {ep_train_loss:.4f} | Test Acc: {test_acc:.4f}")
+        
     history['time_taken'] = time.time() - start_time
     
     # Calculate convergence metrics
