@@ -67,7 +67,7 @@ def run_baseline_sparsity_check(model, optimizer, vectorizer, device):
 
 def run_part1(device, train_loader, test_loader, input_dim):
     print_part_header("Part 1: Hyperparameter Ablation Study")
-    lrs = [0.1, 0.05, 0.01, 0.001]
+    lrs = [0.5, 0.1, 0.05, 0.01, 0.001]
     accs = [0, 1.0]
     
     histories = {}

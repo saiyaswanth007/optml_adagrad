@@ -45,7 +45,8 @@ def get_dataloaders(max_features=50000, batch_size=64, seed=42):
         stop_words='english',
         max_df=0.95,
         min_df=5,
-        ngram_range=(1,1),
+        ngram_range=(1,2),
+        sublinear_tf=True,
         max_features=max_features
     )
     X_train = vectorizer.fit_transform(newsgroups_train.data)
