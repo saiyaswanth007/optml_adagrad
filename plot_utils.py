@@ -86,6 +86,18 @@ def plot_part2(h_custom, h_pytorch, output_dir="plots"):
     plt.savefig(os.path.join(output_dir, 'part2_true_sparsity.png'))
     plt.close()
 
+    # Training Loss vs Iterations
+    plt.figure(figsize=(10, 6))
+    plt.plot(h_custom['iter_train_loss'], label="Custom L1 (Soft-Thresholding)", alpha=0.7)
+    plt.plot(h_pytorch['iter_train_loss'], label="PyTorch L1 (Penalty)", alpha=0.7, linestyle='--')
+    plt.xlabel('Iterations')
+    plt.ylabel('Training Loss')
+    plt.title('Part 2: Training Loss vs Iterations')
+    plt.legend()
+    set_style()
+    plt.savefig(os.path.join(output_dir, 'part2_iter_train_loss.png'))
+    plt.close()
+
 def plot_part3(h_cmd, h_pd, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
     
@@ -101,6 +113,32 @@ def plot_part3(h_cmd, h_pd, output_dir="plots"):
         set_style()
         plt.savefig(os.path.join(output_dir, f'part3_{metric}.png'))
         plt.close()
+
+    # Gradient Norm vs Iterations
+    plt.figure(figsize=(10, 6))
+    plt.plot(h_cmd['iter_grad_norm'], label="Update: CMD", alpha=0.7)
+    plt.plot(h_pd['iter_grad_norm'], label="Update: Primal Dual", alpha=0.7, linestyle='--')
+    plt.xlabel('Iterations')
+    plt.ylabel('Gradient Norm ||g_t||')
+    plt.yscale('log')
+    plt.title('Part 3: Gradient Norm vs Iterations')
+    plt.legend()
+    set_style()
+    plt.savefig(os.path.join(output_dir, 'part3_iter_grad_norm.png'))
+    plt.close()
+
+    # Update Magnitude vs Iterations
+    plt.figure(figsize=(10, 6))
+    plt.plot(h_cmd['iter_update_magnitude'], label="Update: CMD", alpha=0.7)
+    plt.plot(h_pd['iter_update_magnitude'], label="Update: Primal Dual", alpha=0.7, linestyle='--')
+    plt.xlabel('Iterations')
+    plt.ylabel('Update Magnitude ||Δθ_t||')
+    plt.yscale('log')
+    plt.title('Part 3: Update Magnitude vs Iterations')
+    plt.legend()
+    set_style()
+    plt.savefig(os.path.join(output_dir, 'part3_iter_update_mag.png'))
+    plt.close()
 
 def plot_part4(h_unconstrained, h_constrained, output_dir="plots"):
     os.makedirs(output_dir, exist_ok=True)
