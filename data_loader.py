@@ -22,17 +22,15 @@ class SparseDataset(Dataset):
         X: scipy.sparse.csr_matrix
         y: numpy array
         """
-        self.X = X
-        self.y = y
+        # Precompute massive dense tensor once to avoid per-item overhead
+        self.X_dense = torch.FloatTensor(X.toarray())
+        self.y_tensor = torch.LongTensor(y)
 
     def __len__(self):
-        return self.X.shape[0]
+        return self.X_dense.shape[0]
 
     def __getitem__(self, idx):
-        # Convert row to dense tensor for safe PyTorch processing
-        x = torch.FloatTensor(self.X[idx].toarray().squeeze(0))
-        y = torch.LongTensor([self.y[idx]]).squeeze(0)
-        return x, y
+        return self.X_dense[idx], self.y_tensor[idx]
 
 def get_dataloaders(max_features=20000, batch_size=64, seed=42):
     set_seeds(seed)

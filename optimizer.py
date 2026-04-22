@@ -332,9 +332,12 @@ class AdaGradStrict(Optimizer):
         theta_max = (v_norm / lam) - (1.0 / sigma_max)
         theta_min = (v_norm / lam) - (1.0 / sigma_min)
 
-        # Bisection loop
-        alpha_opt = None
-        while (theta_max - theta_min) > eps:
+        # Bisection loop with max iterations for numerical stability
+        alpha_opt = torch.zeros_like(u)
+        for _ in range(100):
+            if (theta_max - theta_min) <= eps:
+                break
+                
             theta = (theta_max + theta_min) / 2.0
             norm_val, alpha_opt = alpha_norm(theta)
             

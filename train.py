@@ -85,17 +85,16 @@ def train_epoch(model, optimizer, data_loader, epoch, device='cpu', pytorch_l1_p
         
         total_param_norm = 0.0
         total_update_mag = 0.0
-        new_params = []
         for p, old_p in zip(model.parameters(), old_params):
             if p.requires_grad:
                 total_param_norm += p.data.norm(2).item() ** 2
                 delta = p.data - old_p
                 total_update_mag += delta.norm(2).item() ** 2
-                new_params.append(p.clone().detach())
+                old_p.copy_(p.data)
         
         total_param_norm = total_param_norm ** 0.5
         total_update_mag = total_update_mag ** 0.5
-        old_params = new_params
+
         
         iter_metrics['grad_norm'].append(total_grad_norm)
         iter_metrics['param_norm'].append(total_param_norm)
